@@ -1,14 +1,12 @@
+#!/usr/bin/env python
+
 import os
 import pygal
 from pygal.style import Style
-from difflib import SequenceMatcher
+from difflib import Differ, SequenceMatcher
+
 totals = []
-
-
-#os.chdir('/Users/christopheryoung/PycharmProjects/netmanchris-scriptsonly/Events/ETSS June
-# 2016/DevOps Networking Model/Generate_Spine_Leaf_Configs/Configs')
-#listdir = os.listdir()
-#os.chdir(os.listdir())
+keywords = { "BGP": 0.1, "OSPF": 0.2, "ISIS": 0.3, "EIGRP": 0.4, "RIP": 10.0} 
 listdir = os.listdir()
 
 configs = []
@@ -16,15 +14,28 @@ for i in listdir:
     if 'cfg' in i:
         configs.append(i)
 
-#configs = ['5930-2.cfg','7904-1.cfg', '7904-2.cfg']
-
 text1 = open(configs[0]).read()
+d1 = open(configs[0]).readlines()
 
 for config in configs:
     config_content = open(config).read()
     metric = SequenceMatcher(None, text1, config_content)
-    totals.append(metric.ratio())
-    print (config, " stability metric: ", metric.ratio())
+
+    d = Differ()
+    d2 = open(config).readlines()
+    weight = 1.0
+    diff = list(d.compare(d1, d2))
+    print("found {} diffs".format(len(diff)))
+    for l in diff:
+        if not l.startswith(("+","-")):
+            continue
+        for k in keywords:
+            if " {} ".format(k).lower() in l.lower():
+                print("matched {} in {}".format(k, l))
+                weight = weight + keywords[k]
+    ratio = metric.ratio() / weight
+    totals.append(ratio)
+    print (config, " stability metric: ", ratio)
 
 
 print ("\n Network Stability Metric: ", sum(totals)/len(totals))
